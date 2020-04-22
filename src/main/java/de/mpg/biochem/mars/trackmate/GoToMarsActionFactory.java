@@ -26,32 +26,11 @@
  ******************************************************************************/
 package de.mpg.biochem.mars.trackmate;
 
-import fiji.plugin.trackmate.Logger;
-import fiji.plugin.trackmate.Model;
-import fiji.plugin.trackmate.Settings;
-import fiji.plugin.trackmate.Spot;
-import fiji.plugin.trackmate.TrackMate;
 import fiji.plugin.trackmate.action.TrackMateAction;
 import fiji.plugin.trackmate.action.TrackMateActionFactory;
 import fiji.plugin.trackmate.gui.TrackMateGUIController;
-import fiji.plugin.trackmate.gui.TrackMateWizard;
-import fiji.plugin.trackmate.io.IOUtils;
-import fiji.plugin.trackmate.util.TMUtils;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Set;
-import java.util.TreeSet;
-
 import javax.swing.ImageIcon;
-
-import org.scijava.ItemIO;
-import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-
-import de.mpg.biochem.mars.molecule.SingleMoleculeArchive;
 
 @Plugin( type = TrackMateActionFactory.class )
 public class GoToMarsActionFactory implements TrackMateActionFactory {
