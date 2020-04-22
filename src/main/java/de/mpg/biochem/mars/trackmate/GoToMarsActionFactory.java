@@ -24,13 +24,15 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-package de.mpg.biochem.mars.molecule.trackmate;
+package de.mpg.biochem.mars.trackmate;
 
 import fiji.plugin.trackmate.Logger;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Settings;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.TrackMate;
+import fiji.plugin.trackmate.action.TrackMateAction;
+import fiji.plugin.trackmate.action.TrackMateActionFactory;
 import fiji.plugin.trackmate.gui.TrackMateGUIController;
 import fiji.plugin.trackmate.gui.TrackMateWizard;
 import fiji.plugin.trackmate.io.IOUtils;
@@ -44,7 +46,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import javax.swing.ImageIcon;
+
+import org.scijava.ItemIO;
+import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+
+import de.mpg.biochem.mars.molecule.SingleMoleculeArchive;
 
 @Plugin( type = TrackMateActionFactory.class )
 public class GoToMarsActionFactory implements TrackMateActionFactory {
@@ -65,7 +72,7 @@ public class GoToMarsActionFactory implements TrackMateActionFactory {
  				"Currently this format <u>cannot</u> handle track merging and " +
  				"splitting properly, and is suited only for non-branching tracks." +
  				"</html>";
-
+ 	
 	@Override
 	public String getInfoText()
 	{

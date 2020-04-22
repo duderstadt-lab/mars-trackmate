@@ -68,11 +68,18 @@
 		<system>GitLab Issues</system>
 		<url>https://github.com/duderstadt-lab/mars-trackmate/issues</url>
 	</issueManagement>
+	<ciManagement>
+		<system>Travis CI</system>
+		<url>https://travis-ci.com/duderstadt-lab/mars-trackmate</url>
+	</ciManagement>
 
 	<properties>
 		<package-name>de.mpg.biochem.mars.trackmate</package-name>
 		<license.licenseName>BSD-2</license.licenseName>
 		<license.copyrightOwners>Karl Duderstadt</license.copyrightOwners>
+		
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
  		<mars-core.version>1.0.0-beta-4-SNAPSHOT</mars-core.version>
 	</properties>
@@ -84,8 +91,12 @@
 			<version>${mars-core.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
+			<groupId>sc.fiji</groupId>
+			<artifactId>fiji-lib</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>TrackMate_</artifactId>
 		</dependency>
 	</dependencies>
 

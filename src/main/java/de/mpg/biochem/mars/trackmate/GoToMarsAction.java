@@ -26,25 +26,36 @@
  ******************************************************************************/
 package de.mpg.biochem.mars.trackmate;
 
- import fiji.plugin.trackmate.Logger;
- import fiji.plugin.trackmate.Model;
- import fiji.plugin.trackmate.Settings;
- import fiji.plugin.trackmate.Spot;
- import fiji.plugin.trackmate.TrackMate;
- import fiji.plugin.trackmate.gui.TrackMateGUIController;
- import fiji.plugin.trackmate.gui.TrackMateWizard;
- import fiji.plugin.trackmate.io.IOUtils;
- import fiji.plugin.trackmate.util.TMUtils;
+import fiji.plugin.trackmate.Model;
+import fiji.plugin.trackmate.Spot;
+import fiji.plugin.trackmate.TrackMate;
+import fiji.plugin.trackmate.action.AbstractTMAction;
+import fiji.plugin.trackmate.gui.TrackMateGUIController;
+import fiji.plugin.trackmate.util.TMUtils;
+import ij.IJ;
 
- import java.io.File;
- import java.io.FileNotFoundException;
- import java.io.FileOutputStream;
- import java.io.IOException;
- import java.util.Set;
- import java.util.TreeSet;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Future;
 
- import javax.swing.ImageIcon;
- import org.scijava.plugin.Plugin;
+import org.scijava.Context;
+import org.scijava.ItemIO;
+import org.scijava.command.Command;
+import org.scijava.command.CommandModule;
+import org.scijava.command.ContextCommand;
+import org.scijava.command.CommandService;
+import org.scijava.module.Module;
+import org.scijava.plugin.Parameter;
+import org.scijava.plugin.Plugin;
+import org.scijava.table.DoubleColumn;
+import org.scijava.module.ModuleService;
+
+import de.mpg.biochem.mars.molecule.SdmmImageMetadata;
+import de.mpg.biochem.mars.molecule.SingleMolecule;
+import de.mpg.biochem.mars.molecule.SingleMoleculeArchive;
+import de.mpg.biochem.mars.table.MarsTable;
+import de.mpg.biochem.mars.util.LogBuilder;
+import de.mpg.biochem.mars.util.MarsMath;
 
  /**
   * TrackMateAction to export tracks to a mars MoleculeArchive.
@@ -52,8 +63,6 @@ package de.mpg.biochem.mars.trackmate;
   */
  public class GoToMarsAction extends AbstractTMAction {
 
-	  private static final String CONTENT_KEY 	= "Tracks";
-  	private static final String DATE_ATT 		= "generationDateTime";
   	private static final String PHYSUNIT_ATT 	= "spaceUnits";
   	private static final String FRAMEINTERVAL_ATT 	= "frameInterval";
   	private static final String FRAMEINTERVALUNIT_ATT 	= "timeUnits";
@@ -62,12 +71,12 @@ package de.mpg.biochem.mars.trackmate;
   	private static final String NSPOTS_ATT		= "nSpots";
 
 
-  	private static final String TRACK_KEY = "particle";
-  	private static final String SPOT_KEY = "detection";
+  	//private static final String TRACK_KEY = "particle";
+  	//private static final String SPOT_KEY = "detection";
   	private static final String X_ATT = "x";
   	private static final String Y_ATT = "y";
   	private static final String Z_ATT = "z";
-  	private static final String T_ATT = "t";
+  	//private static final String T_ATT = "t";
 
  	private final TrackMateGUIController controller;
 
@@ -87,86 +96,103 @@ package de.mpg.biochem.mars.trackmate;
  		}
 
  		logger.log("  building archive.\n");
- 		final Element root = marshall(model, trackmate.getSettings(), logger);
-
- 		File folder;
- 		try {
- 			folder = new File(trackmate.getSettings().imp.getOriginalFileInfo().directory);
- 		} catch (final NullPointerException npe) {
- 			folder = new File(System.getProperty("user.dir")).getParentFile().getParentFile();
- 		}
-
- 		File file;
- 		try {
- 			String filename = trackmate.getSettings().imageFileName;
- 			final int dot = filename.indexOf(".");
- 			filename = dot < 0 ? filename : filename.substring(0, dot);
- 			file = new File(folder.getPath() + File.separator + filename +"_Tracks.xml");
- 		} catch (final NullPointerException npe) {
- 			file = new File(folder.getPath() + File.separator + "Tracks.xml");
- 		}
- 		file = IOUtils.askForFileForSaving(file, controller.getGUI(), logger);
- 		if (null == file) {
- 			return;
- 		}
-
- 		logger.log("  Writing to file.\n");
- 		final Document document = new Document(root);
- 		final XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat());
- 		try {
- 			outputter.output(document, new FileOutputStream(file));
- 		} catch (final FileNotFoundException e) {
- 			logger.error("Trouble writing to "+file+":\n" + e.getMessage());
- 		} catch (final IOException e) {
- 			logger.error("Trouble writing to "+file+":\n" + e.getMessage());
- 		}
- 		logger.log("Done.\n");
- 	}
-
- 	private static Element marshall(final Model model, final Settings settings, final Logger logger) {
- 		logger.setStatus("Marshalling...");
- 		final Element content = new Element(CONTENT_KEY);
-
- 		content.setAttribute(NTRACKS_ATT, ""+model.getTrackModel().nTracks(true));
- 		content.setAttribute(PHYSUNIT_ATT, model.getSpaceUnits());
- 		content.setAttribute(FRAMEINTERVAL_ATT, ""+settings.dt);
- 		content.setAttribute(FRAMEINTERVALUNIT_ATT, ""+model.getTimeUnits());
- 		content.setAttribute(DATE_ATT, TMUtils.getCurrentTimeString());
- 		content.setAttribute(FROM_ATT, TrackMate.PLUGIN_NAME_STR + " v" + TrackMate.PLUGIN_NAME_VERSION);
+ 		
+ 		logger.setStatus("building archive...");
+ 		
+ 		SingleMoleculeArchive archive = new SingleMoleculeArchive("FromTrackMate.yama");
+ 		
+ 		SdmmImageMetadata marsMetadata = new SdmmImageMetadata(trackmate.getSettings().imp, "unknown", "NULL", null);
+ 		marsMetadata.setCollectionDate(TMUtils.getCurrentTimeString());
+ 		archive.putMetadata(marsMetadata);
+ 		
+ 		//Build log
+		LogBuilder builder = new LogBuilder();
+		
+		String log = LogBuilder.buildTitleBlock("Import from TrackMate");
+		
+		builder.addParameter(NTRACKS_ATT, ""+model.getTrackModel().nTracks(true));
+		builder.addParameter(PHYSUNIT_ATT, model.getSpaceUnits());
+		builder.addParameter(FRAMEINTERVAL_ATT, ""+trackmate.getSettings().dt);
+		builder.addParameter(FRAMEINTERVALUNIT_ATT, ""+model.getTimeUnits());
+		builder.addParameter(FROM_ATT, TrackMate.PLUGIN_NAME_STR + " v" + TrackMate.PLUGIN_NAME_VERSION);
+ 		
+ 		log += builder.buildParameterList();
 
  		final Set<Integer> trackIDs = model.getTrackModel().trackIDs(true);
  		int i = 0;
  		for (final Integer trackID : trackIDs) {
-
+ 			SingleMolecule molecule = new SingleMolecule(MarsMath.getUUID58());
+ 			molecule.setMetadataUID(marsMetadata.getUID());
+ 			
  			final Set<Spot> track = model.getTrackModel().trackSpots(trackID);
 
- 			final Element trackElement = new Element(TRACK_KEY);
- 			trackElement.setAttribute(NSPOTS_ATT, ""+track.size());
+ 			molecule.setParameter("TrackID", trackID);
+ 			molecule.setParameter(NSPOTS_ATT, track.size());
 
  			// Sort them by time
  			final TreeSet<Spot> sortedTrack = new TreeSet<>(Spot.timeComparator);
  			sortedTrack.addAll(track);
+ 			
+ 			MarsTable table = new MarsTable("DataTable");
+ 			DoubleColumn frameColumn = new DoubleColumn("frame");
+ 			DoubleColumn xColumn = new DoubleColumn(X_ATT);
+ 			DoubleColumn yColumn = new DoubleColumn(Y_ATT);
+ 			DoubleColumn zColumn = new DoubleColumn(Z_ATT);
 
  			for (final Spot spot : sortedTrack) {
- 				final int frame = spot.getFeature(Spot.FRAME).intValue();
+ 				final double frame = spot.getFeature(Spot.FRAME).intValue();
  				final double x = spot.getFeature(Spot.POSITION_X);
  				final double y = spot.getFeature(Spot.POSITION_Y);
  				final double z = spot.getFeature(Spot.POSITION_Z);
 
- 				final Element spotElement = new Element(SPOT_KEY);
- 				spotElement.setAttribute(T_ATT, ""+frame);
- 				spotElement.setAttribute(X_ATT, ""+x);
- 				spotElement.setAttribute(Y_ATT, ""+y);
- 				spotElement.setAttribute(Z_ATT, ""+z);
- 				trackElement.addContent(spotElement);
+ 				frameColumn.add(frame);
+ 				xColumn.add(x);
+ 				yColumn.add(y);
+ 				zColumn.add(z);
  			}
- 			content.addContent(trackElement);
+ 			
+ 			table.add(frameColumn);
+ 			table.add(xColumn);
+ 			table.add(yColumn);
+ 			table.add(zColumn);
+ 			
+ 			molecule.setDataTable(table);
+ 			
+ 			archive.put(molecule);
  			logger.setProgress(i++ / (0d + model.getTrackModel().nTracks(true)));
  		}
 
  		logger.setStatus("");
  		logger.setProgress(1);
- 		return content;
- 	}
+ 		
+ 		archive.naturalOrderSortMoleculeIndex();
+ 		
+ 		archive.logln(log);
+ 		archive.logln(LogBuilder.endBlock(true));
+ 		
+ 		//I guess this can be accessed in TMUtils now with TMUtils.getContext() but this doesn't seem to be in the default version yet...
+ 		Context context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
+ 		
+ 		final Future<CommandModule> future =
+		context.getService(CommandService.class).run(SpitOutMoleculeArchive.class, true, "input", archive);
+	    // wait for the execution thread to complete
+	    final Module module = ((ModuleService) context.getService(ModuleService.class)).waitFor(future);
 
+ 		logger.log("Done.\n");
+ 	}
+ 	
+ 	@Plugin(type = Command.class, name = "SpitOutMoleculeArchive")
+	public static class SpitOutMoleculeArchive extends ContextCommand {
+
+		@Parameter
+		private SingleMoleculeArchive input;
+
+		@Parameter(type = ItemIO.OUTPUT)
+		private SingleMoleculeArchive output;
+
+		@Override
+		public void run() {
+			output = input;
+		}
+	}
  }
