@@ -102,7 +102,6 @@ import de.mpg.biochem.mars.util.MarsMath;
  		SingleMoleculeArchive archive = new SingleMoleculeArchive("FromTrackMate.yama");
  		
  		SdmmImageMetadata marsMetadata = new SdmmImageMetadata(trackmate.getSettings().imp, "unknown", "NULL", null);
- 		marsMetadata.setCollectionDate(TMUtils.getCurrentTimeString());
  		archive.putMetadata(marsMetadata);
  		
  		//Build log
