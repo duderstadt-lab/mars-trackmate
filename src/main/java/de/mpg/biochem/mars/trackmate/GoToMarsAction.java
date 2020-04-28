@@ -26,6 +26,7 @@
  ******************************************************************************/
 package de.mpg.biochem.mars.trackmate;
 
+import fiji.plugin.trackmate.FeatureModel;
 import fiji.plugin.trackmate.Model;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.TrackMate;
@@ -34,6 +35,7 @@ import fiji.plugin.trackmate.gui.TrackMateGUIController;
 import fiji.plugin.trackmate.util.TMUtils;
 import ij.IJ;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Future;
@@ -89,6 +91,8 @@ import de.mpg.biochem.mars.util.MarsMath;
 
  		logger.log("Exporting tracks to Mars MoleculeArchive.\n");
  		final Model model = trackmate.getModel();
+ 		final FeatureModel fm = model.getFeatureModel();
+ 		
  		final int ntracks = model.getTrackModel().nTracks(true);
  		if (ntracks == 0) {
  			logger.log("No visible track found. Aborting.\n");
@@ -116,6 +120,8 @@ import de.mpg.biochem.mars.util.MarsMath;
 		builder.addParameter(FROM_ATT, TrackMate.PLUGIN_NAME_STR + " v" + TrackMate.PLUGIN_NAME_VERSION);
  		
  		log += builder.buildParameterList();
+ 		
+ 		final Collection< String > spotFeatures = trackmate.getModel().getFeatureModel().getSpotFeatures();
 
  		final Set<Integer> trackIDs = model.getTrackModel().trackIDs(true);
  		int i = 0;
@@ -137,8 +143,27 @@ import de.mpg.biochem.mars.util.MarsMath;
  			DoubleColumn xColumn = new DoubleColumn(X_ATT);
  			DoubleColumn yColumn = new DoubleColumn(Y_ATT);
  			DoubleColumn zColumn = new DoubleColumn(Z_ATT);
+ 			
+ 			table.add(frameColumn);
+ 			table.add(xColumn);
+ 			table.add(yColumn);
+ 			table.add(zColumn);
+ 			
+ 			for ( final String feature : spotFeatures ) {
+ 				if (!feature.equals(Spot.FRAME) 
+ 						&& !feature.equals(Spot.POSITION_X) 
+ 						&& !feature.equals(Spot.POSITION_Y) 
+ 						&& !feature.equals(Spot.POSITION_Z)) {
+ 					DoubleColumn col = new DoubleColumn(feature);
+ 					table.add(col);
+ 				}
+ 			}
 
+ 			int row = 0;
  			for (final Spot spot : sortedTrack) {
+ 				table.appendRow();
+ 				
+ 				//We add these manually to ensure they are the first columns in the table.
  				final double frame = spot.getFeature(Spot.FRAME).intValue();
  				final double x = spot.getFeature(Spot.POSITION_X);
  				final double y = spot.getFeature(Spot.POSITION_Y);
@@ -148,12 +173,30 @@ import de.mpg.biochem.mars.util.MarsMath;
  				xColumn.add(x);
  				yColumn.add(y);
  				zColumn.add(z);
+ 				
+ 				for ( final String feature : spotFeatures ) {
+ 					if (feature.equals(Spot.FRAME) 
+ 	 						&& feature.equals(Spot.POSITION_X) 
+ 	 						&& feature.equals(Spot.POSITION_Y) 
+ 	 						&& feature.equals(Spot.POSITION_Z))
+ 								continue;	
+ 					
+ 					final Double val = spot.getFeature( feature );
+ 					if ( null == val ) {
+ 						table.setValue(feature, row, Double.NaN);
+ 					} else {
+ 						if ( fm.getSpotFeatureIsInt().get( feature ).booleanValue() )
+ 						{
+ 							table.setValue(feature, row, val.intValue() );
+ 						}
+ 						else
+ 						{
+ 							table.setValue(feature, row, val.doubleValue() );
+ 						}
+ 					}
+ 				}
+ 				row++;
  			}
- 			
- 			table.add(frameColumn);
- 			table.add(xColumn);
- 			table.add(yColumn);
- 			table.add(zColumn);
  			
  			molecule.setDataTable(table);
  			
