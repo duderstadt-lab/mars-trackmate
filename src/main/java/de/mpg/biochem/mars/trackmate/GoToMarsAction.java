@@ -151,9 +151,9 @@ import de.mpg.biochem.mars.util.MarsMath;
  			
  			for ( final String feature : spotFeatures ) {
  				if (!feature.equals(Spot.FRAME) 
- 						&& !feature.equals(Spot.POSITION_X) 
- 						&& !feature.equals(Spot.POSITION_Y) 
- 						&& !feature.equals(Spot.POSITION_Z)) {
+ 						|| !feature.equals(Spot.POSITION_X) 
+ 						|| !feature.equals(Spot.POSITION_Y) 
+ 						|| !feature.equals(Spot.POSITION_Z)) {
  					DoubleColumn col = new DoubleColumn(feature);
  					table.add(col);
  				}
@@ -176,9 +176,9 @@ import de.mpg.biochem.mars.util.MarsMath;
  				
  				for ( final String feature : spotFeatures ) {
  					if (feature.equals(Spot.FRAME) 
- 	 						&& feature.equals(Spot.POSITION_X) 
- 	 						&& feature.equals(Spot.POSITION_Y) 
- 	 						&& feature.equals(Spot.POSITION_Z))
+ 	 						|| feature.equals(Spot.POSITION_X) 
+ 	 						|| feature.equals(Spot.POSITION_Y) 
+ 	 						|| feature.equals(Spot.POSITION_Z))
  								continue;	
  					
  					final Double val = spot.getFeature( feature );
