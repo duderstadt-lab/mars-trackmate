@@ -230,11 +230,11 @@ import de.mpg.biochem.mars.util.MarsMath;
 		private SingleMoleculeArchive input;
 
 		@Parameter(type = ItemIO.OUTPUT)
-		private SingleMoleculeArchive output;
+		private SingleMoleculeArchive TrackmateResults;
 
 		@Override
 		public void run() {
-			output = input;
+			TrackmateResults = input;
 		}
 	}
  }
