@@ -52,7 +52,7 @@ import org.scijava.plugin.Plugin;
 import org.scijava.table.DoubleColumn;
 import org.scijava.module.ModuleService;
 
-import de.mpg.biochem.mars.molecule.SdmmImageMetadata;
+import de.mpg.biochem.mars.metadata.*;
 import de.mpg.biochem.mars.molecule.SingleMolecule;
 import de.mpg.biochem.mars.molecule.SingleMoleculeArchive;
 import de.mpg.biochem.mars.table.MarsTable;
@@ -105,7 +105,9 @@ import de.mpg.biochem.mars.util.MarsMath;
  		
  		SingleMoleculeArchive archive = new SingleMoleculeArchive("FromTrackMate.yama");
  		
- 		SdmmImageMetadata marsMetadata = new SdmmImageMetadata(trackmate.getSettings().imp, "unknown", "NULL", null);
+ 		//trackmate.getSettings().imp
+ 		
+ 		MarsOMEMetadata marsMetadata = new MarsOMEMetadata();
  		archive.putMetadata(marsMetadata);
  		
  		//Build log

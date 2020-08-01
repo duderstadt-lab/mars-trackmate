@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>27.0.1</version>
+		<version>29.1.0</version>
 		<relativePath />
 	</parent>
 
@@ -23,7 +23,7 @@
 	</organization>
 	<licenses>
 		<license>
-			<name>BSD-2</name>
+			<name>bsd_2</name>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
@@ -75,13 +75,13 @@
 
 	<properties>
 		<package-name>de.mpg.biochem.mars.trackmate</package-name>
-		<license.licenseName>BSD-2</license.licenseName>
+		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Karl Duderstadt</license.copyrightOwners>
 		
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
- 		<mars-core.version>1.0.0-beta-4-SNAPSHOT</mars-core.version>
+ 		<mars-core.version>1.0.0-beta-5-SNAPSHOT</mars-core.version>
 	</properties>
 
 	<dependencies>
