@@ -34,6 +34,10 @@ import fiji.plugin.trackmate.action.AbstractTMAction;
 import fiji.plugin.trackmate.gui.TrackMateGUIController;
 import fiji.plugin.trackmate.util.TMUtils;
 import ij.IJ;
+import ij.ImagePlus;
+import ome.xml.model.enums.DimensionOrder;
+import ome.xml.model.primitives.NonNegativeInteger;
+import ome.xml.model.primitives.PositiveInteger;
 
 import java.util.Collection;
 import java.util.Set;
@@ -88,7 +92,6 @@ import de.mpg.biochem.mars.util.MarsMath;
  	}
  	@Override
  	public void execute(final TrackMate trackmate) {
-
  		logger.log("Exporting tracks to Mars MoleculeArchive.\n");
  		final Model model = trackmate.getModel();
  		final FeatureModel fm = model.getFeatureModel();
@@ -100,14 +103,57 @@ import de.mpg.biochem.mars.util.MarsMath;
  		}
 
  		logger.log("  building archive.\n");
- 		
  		logger.setStatus("building archive...");
  		
  		SingleMoleculeArchive archive = new SingleMoleculeArchive("FromTrackMate.yama");
  		
- 		//trackmate.getSettings().imp
+ 		//trackmate.
+ 		ImagePlus imp = trackmate.getSettings().imp;
+ 		int[] dim = imp.getDimensions();
  		
  		MarsOMEMetadata marsMetadata = new MarsOMEMetadata();
+ 		
+ 		MarsOMEImage image = new MarsOMEImage();
+ 		
+ 		image.setName("Unknown");
+ 		image.setID("Unknown");
+ 		
+ 		if (imp.getOriginalFileInfo() != null && imp.getOriginalFileInfo().directory != null) {
+			marsMetadata.setSourceDirectory(imp.getOriginalFileInfo().directory);
+			image.setName(imp.getOriginalFileInfo().directory);
+			if (imp.getOriginalFileInfo().description != null)
+				image.setDescription(imp.getOriginalFileInfo().description);
+		}
+ 		
+		image.setImageIndex(0);
+		image.setSizeX(new PositiveInteger(dim[0]));
+		image.setSizeY(new PositiveInteger(dim[1]));
+		image.setSizeC(new PositiveInteger(dim[2]));
+		image.setSizeZ(new PositiveInteger(dim[3]));
+		image.setSizeT(new PositiveInteger(dim[4]));
+		
+		image.setTimeIncrementInSeconds(trackmate.getSettings().dt);
+		
+ 		for (int channelIndex=0; channelIndex < dim[2]; channelIndex++) {
+			MarsOMEChannel channel = new MarsOMEChannel();
+			image.setChannel(channel, channelIndex);
+		}
+			
+ 		image.setDimensionOrder(DimensionOrder.valueOf("XYCZT"));
+ 		
+ 		//Loop through all dimensions in nested loops and generate planes for all.
+		for (int z=0; z < image.getSizeZ(); z++)
+			for (int c=0; c < image.getSizeC(); c++)
+				for (int t=0; t < image.getSizeT(); t++) {
+					int planeIndex = (int) image.getPlaneIndex(z, c, t);
+					MarsOMEPlane plane = new MarsOMEPlane(image, 0, planeIndex, 
+							new NonNegativeInteger(z), 
+							new NonNegativeInteger(c),
+							new NonNegativeInteger(t));
+					image.setPlane(plane, planeIndex);
+				}
+ 		
+		marsMetadata.setImage(image, 0);
  		archive.putMetadata(marsMetadata);
  		
  		//Build log
@@ -140,7 +186,7 @@ import de.mpg.biochem.mars.util.MarsMath;
  			final TreeSet<Spot> sortedTrack = new TreeSet<>(Spot.timeComparator);
  			sortedTrack.addAll(track);
  			
- 			MarsTable table = new MarsTable("DataTable");
+ 			MarsTable table = new MarsTable("Table");
  			DoubleColumn frameColumn = new DoubleColumn("frame");
  			DoubleColumn xColumn = new DoubleColumn(X_ATT);
  			DoubleColumn yColumn = new DoubleColumn(Y_ATT);
@@ -200,7 +246,7 @@ import de.mpg.biochem.mars.util.MarsMath;
  				row++;
  			}
  			
- 			molecule.setDataTable(table);
+ 			molecule.setTable(table);
  			
  			archive.put(molecule);
  			logger.setProgress(i++ / (0d + model.getTrackModel().nTracks(true)));
@@ -212,6 +258,7 @@ import de.mpg.biochem.mars.util.MarsMath;
  		archive.naturalOrderSortMoleculeIndex();
  		
  		archive.logln(log);
+ 		archive.log(controller.getGUI().getLogPanel().getTextContent());
  		archive.logln(LogBuilder.endBlock(true));
  		
  		//I guess this can be accessed in TMUtils now with TMUtils.getContext() but this doesn't seem to be in the default version yet...
@@ -225,7 +272,7 @@ import de.mpg.biochem.mars.util.MarsMath;
  		logger.log("Done.\n");
  	}
  	
- 	@Plugin(type = Command.class, name = "SpitOutMoleculeArchive")
+ 	@Plugin(type = Command.class, name = "Export to MoleculeArchive from Trackmate")
 	public static class SpitOutMoleculeArchive extends ContextCommand {
 
 		@Parameter
