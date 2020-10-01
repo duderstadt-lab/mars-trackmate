@@ -125,7 +125,7 @@ import de.mpg.biochem.mars.util.MarsMath;
 				image.setDescription(imp.getOriginalFileInfo().description);
 		}
  		
-		image.setImageIndex(0);
+		image.setImageID(0);
 		image.setSizeX(new PositiveInteger(dim[0]));
 		image.setSizeY(new PositiveInteger(dim[1]));
 		image.setSizeC(new PositiveInteger(dim[2]));
