@@ -11,7 +11,7 @@
 
 	<groupId>de.mpg.biochem</groupId>
 	<artifactId>mars-trackmate</artifactId>
-	<version>0.1.1</version>
+	<version>0.1.2-SNAPSHOT</version>
 
 	<name>mars-swing</name>
 	<description>TrackMate Mars export plugin</description>
@@ -81,7 +81,7 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
- 		<mars-core.version>1.0.0-beta-8</mars-core.version>
+ 		<mars-core.version>1.0.0-beta-10-SNAPSHOT</mars-core.version>
 	</properties>
 
 	<dependencies>
