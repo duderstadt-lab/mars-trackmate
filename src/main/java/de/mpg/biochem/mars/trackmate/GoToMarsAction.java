@@ -255,8 +255,6 @@ import de.mpg.biochem.mars.util.MarsMath;
  		logger.setStatus("");
  		logger.setProgress(1);
  		
- 		archive.naturalOrderSortMoleculeIndex();
- 		
  		archive.logln(log);
  		archive.log(controller.getGUI().getLogPanel().getTextContent());
  		archive.logln(LogBuilder.endBlock(true));
