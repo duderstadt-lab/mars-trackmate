@@ -27,18 +27,22 @@
 package de.mpg.biochem.mars.trackmate;
 
 import fiji.plugin.trackmate.FeatureModel;
+import fiji.plugin.trackmate.Logger;
 import fiji.plugin.trackmate.Model;
+import fiji.plugin.trackmate.SelectionModel;
 import fiji.plugin.trackmate.Spot;
 import fiji.plugin.trackmate.TrackMate;
 import fiji.plugin.trackmate.action.AbstractTMAction;
-import fiji.plugin.trackmate.gui.TrackMateGUIController;
+import fiji.plugin.trackmate.gui.displaysettings.DisplaySettings;
 import fiji.plugin.trackmate.util.TMUtils;
+import fiji.plugin.trackmate.gui.components.LogPanel;
 import ij.IJ;
 import ij.ImagePlus;
 import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.primitives.NonNegativeInteger;
 import ome.xml.model.primitives.PositiveInteger;
 
+import java.awt.Frame;
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
@@ -63,11 +67,13 @@ import de.mpg.biochem.mars.table.MarsTable;
 import de.mpg.biochem.mars.util.LogBuilder;
 import de.mpg.biochem.mars.util.MarsMath;
 
+import java.lang.reflect.Field;
+
  /**
   * TrackMateAction to export tracks to a mars MoleculeArchive.
   * @author Karl Duderstadt
   */
- public class GoToMarsAction extends AbstractTMAction {
+public class GoToMarsAction extends AbstractTMAction {
 
   	private static final String PHYSUNIT_ATT 	= "spaceUnits";
   	private static final String FRAMEINTERVAL_ATT 	= "frameInterval";
@@ -79,19 +85,14 @@ import de.mpg.biochem.mars.util.MarsMath;
 
   	//private static final String TRACK_KEY = "particle";
   	//private static final String SPOT_KEY = "detection";
-  	private static final String X_ATT = "x";
-  	private static final String Y_ATT = "y";
-  	private static final String Z_ATT = "z";
+  	private static final String X_ATT = "X";
+  	private static final String Y_ATT = "Y";
+  	private static final String Z_ATT = "Z";
   	//private static final String T_ATT = "t";
-
- 	private final TrackMateGUIController controller;
-
- 	public GoToMarsAction( final TrackMateGUIController controller )
- 	{
- 		this.controller = controller;
- 	}
+ 	
  	@Override
- 	public void execute(final TrackMate trackmate) {
+	public void execute(TrackMate trackmate, SelectionModel selectionModel, DisplaySettings displaySettings,
+			Frame parent) {
  		logger.log("Exporting tracks to Mars MoleculeArchive.\n");
  		final Model model = trackmate.getModel();
  		final FeatureModel fm = model.getFeatureModel();
@@ -256,7 +257,7 @@ import de.mpg.biochem.mars.util.MarsMath;
  		logger.setProgress(1);
  		
  		archive.logln(log);
- 		archive.log(controller.getGUI().getLogPanel().getTextContent());
+ 		archive.log(model.getLogger().toString());
  		archive.logln(LogBuilder.endBlock(true));
  		
  		//I guess this can be accessed in TMUtils now with TMUtils.getContext() but this doesn't seem to be in the default version yet...
@@ -284,4 +285,5 @@ import de.mpg.biochem.mars.util.MarsMath;
 			TrackmateResults = input;
 		}
 	}
+
  }

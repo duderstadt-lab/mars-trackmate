@@ -28,7 +28,6 @@ package de.mpg.biochem.mars.trackmate;
 
 import fiji.plugin.trackmate.action.TrackMateAction;
 import fiji.plugin.trackmate.action.TrackMateActionFactory;
-import fiji.plugin.trackmate.gui.TrackMateGUIController;
 import javax.swing.ImageIcon;
 import org.scijava.plugin.Plugin;
 
@@ -71,9 +70,9 @@ public class GoToMarsActionFactory implements TrackMateActionFactory {
 	}
 
 	@Override
-	public TrackMateAction create( final TrackMateGUIController controller )
+	public TrackMateAction create()
 	{
-		return new GoToMarsAction( controller );
+		return new GoToMarsAction();
 	}
 
 	@Override
