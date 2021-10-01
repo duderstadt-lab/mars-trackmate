@@ -60,9 +60,14 @@ import org.scijava.plugin.Plugin;
 import org.scijava.table.DoubleColumn;
 import org.scijava.module.ModuleService;
 
+import de.mpg.biochem.mars.image.PeakShape;
 import de.mpg.biochem.mars.metadata.*;
+import de.mpg.biochem.mars.molecule.Molecule;
+import de.mpg.biochem.mars.molecule.MoleculeArchive;
 import de.mpg.biochem.mars.molecule.SingleMolecule;
 import de.mpg.biochem.mars.molecule.SingleMoleculeArchive;
+import de.mpg.biochem.mars.object.MartianObject;
+import de.mpg.biochem.mars.object.ObjectArchive;
 import de.mpg.biochem.mars.table.MarsTable;
 import de.mpg.biochem.mars.util.LogBuilder;
 import de.mpg.biochem.mars.util.MarsMath;
@@ -88,9 +93,10 @@ public class GoToMarsAction extends AbstractTMAction {
   	private static final String X_ATT = "X";
   	private static final String Y_ATT = "Y";
   	private static final String Z_ATT = "Z";
-  	//private static final String T_ATT = "t";
+  	private static final String T_ATT = "T";
  	
- 	@Override
+ 	@SuppressWarnings("unchecked")
+	@Override
 	public void execute(TrackMate trackmate, SelectionModel selectionModel, DisplaySettings displaySettings,
 			Frame parent) {
  		logger.log("Exporting tracks to Mars MoleculeArchive.\n");
@@ -102,11 +108,32 @@ public class GoToMarsAction extends AbstractTMAction {
  			logger.log("No visible track found. Aborting.\n");
  			return;
  		}
-
- 		logger.log("  building archive.\n");
- 		logger.setStatus("building archive...");
  		
- 		SingleMoleculeArchive archive = new SingleMoleculeArchive("FromTrackMate.yama");
+ 		final Collection< String > spotFeatures = trackmate.getModel().getFeatureModel().getSpotFeatures();
+ 		final Set<Integer> trackIDs = model.getTrackModel().trackIDs(true);
+ 		final boolean spotsHaveShape = (model.getTrackModel().trackSpots(trackIDs.stream().findAny().get()).stream().findAny().get().getRoi() != null) ? true : false; 
+ 		
+ 		String archiveType = (spotsHaveShape) ? "ObjectArchive" : "SingleMoleculeArchive";
+ 		
+ 		logger.log("  building " + archiveType + ".\n");
+ 		logger.setStatus("building " + archiveType + "...");
+ 		
+ 		//Build log
+		LogBuilder builder = new LogBuilder();
+		
+		String log = LogBuilder.buildTitleBlock("Import from TrackMate");
+		
+		builder.addParameter("Type", archiveType);
+		builder.addParameter(NTRACKS_ATT, ""+model.getTrackModel().nTracks(true));
+		builder.addParameter(PHYSUNIT_ATT, model.getSpaceUnits());
+		builder.addParameter(FRAMEINTERVAL_ATT, ""+trackmate.getSettings().dt);
+		builder.addParameter(FRAMEINTERVALUNIT_ATT, ""+model.getTimeUnits());
+		builder.addParameter(FROM_ATT, TrackMate.PLUGIN_NAME_STR + " v" + TrackMate.PLUGIN_NAME_VERSION);
+ 		
+ 		log += builder.buildParameterList();
+ 		
+ 		@SuppressWarnings("rawtypes")
+		MoleculeArchive archive = (spotsHaveShape) ? new ObjectArchive("FromTrackMate.yama") : new SingleMoleculeArchive("FromTrackMate.yama");
  		
  		//trackmate.
  		ImagePlus imp = trackmate.getSettings().imp;
@@ -157,25 +184,9 @@ public class GoToMarsAction extends AbstractTMAction {
 		marsMetadata.setImage(image, 0);
  		archive.putMetadata(marsMetadata);
  		
- 		//Build log
-		LogBuilder builder = new LogBuilder();
-		
-		String log = LogBuilder.buildTitleBlock("Import from TrackMate");
-		
-		builder.addParameter(NTRACKS_ATT, ""+model.getTrackModel().nTracks(true));
-		builder.addParameter(PHYSUNIT_ATT, model.getSpaceUnits());
-		builder.addParameter(FRAMEINTERVAL_ATT, ""+trackmate.getSettings().dt);
-		builder.addParameter(FRAMEINTERVALUNIT_ATT, ""+model.getTimeUnits());
-		builder.addParameter(FROM_ATT, TrackMate.PLUGIN_NAME_STR + " v" + TrackMate.PLUGIN_NAME_VERSION);
- 		
- 		log += builder.buildParameterList();
- 		
- 		final Collection< String > spotFeatures = trackmate.getModel().getFeatureModel().getSpotFeatures();
-
- 		final Set<Integer> trackIDs = model.getTrackModel().trackIDs(true);
  		int i = 0;
  		for (final Integer trackID : trackIDs) {
- 			SingleMolecule molecule = new SingleMolecule(MarsMath.getUUID58());
+ 			Molecule molecule = (spotsHaveShape) ? new MartianObject(MarsMath.getUUID58()) : new SingleMolecule(MarsMath.getUUID58());
  			molecule.setMetadataUID(marsMetadata.getUID());
  			
  			final Set<Spot> track = model.getTrackModel().trackSpots(trackID);
@@ -188,12 +199,12 @@ public class GoToMarsAction extends AbstractTMAction {
  			sortedTrack.addAll(track);
  			
  			MarsTable table = new MarsTable("Table");
- 			DoubleColumn frameColumn = new DoubleColumn("frame");
+ 			DoubleColumn tColumn = new DoubleColumn(T_ATT);
  			DoubleColumn xColumn = new DoubleColumn(X_ATT);
  			DoubleColumn yColumn = new DoubleColumn(Y_ATT);
  			DoubleColumn zColumn = new DoubleColumn(Z_ATT);
  			
- 			table.add(frameColumn);
+ 			table.add(tColumn);
  			table.add(xColumn);
  			table.add(yColumn);
  			table.add(zColumn);
@@ -213,15 +224,15 @@ public class GoToMarsAction extends AbstractTMAction {
  				table.appendRow();
  				
  				//We add these manually to ensure they are the first columns in the table.
- 				final double frame = spot.getFeature(Spot.FRAME).intValue();
+ 				final int frame = spot.getFeature(Spot.FRAME).intValue();
  				final double x = spot.getFeature(Spot.POSITION_X);
  				final double y = spot.getFeature(Spot.POSITION_Y);
  				final double z = spot.getFeature(Spot.POSITION_Z);
 
- 				table.setValue("frame", row, frame);
- 				table.setValue("x", row, x);
- 				table.setValue("y", row, y);
- 				table.setValue("z", row, z);
+ 				table.setValue(T_ATT, row, frame - 1);
+ 				table.setValue(X_ATT, row, x);
+ 				table.setValue(Y_ATT, row, y);
+ 				table.setValue(Z_ATT, row, z);
  				
  				for ( final String feature : spotFeatures ) {
  					if (feature.equals(Spot.FRAME) 
@@ -245,6 +256,8 @@ public class GoToMarsAction extends AbstractTMAction {
  					}
  				}
  				row++;
+ 				
+ 				if (spotsHaveShape) ((MartianObject) molecule).putShape(frame - 1, new PeakShape(spot.getRoi().x, spot.getRoi().y));
  			}
  			
  			molecule.setTable(table);
@@ -275,10 +288,10 @@ public class GoToMarsAction extends AbstractTMAction {
 	public static class SpitOutMoleculeArchive extends ContextCommand {
 
 		@Parameter
-		private SingleMoleculeArchive input;
+		private MoleculeArchive<?, ?, ?, ?> input;
 
 		@Parameter(type = ItemIO.OUTPUT)
-		private SingleMoleculeArchive TrackmateResults;
+		private MoleculeArchive<?, ?, ?, ?> TrackmateResults;
 
 		@Override
 		public void run() {
