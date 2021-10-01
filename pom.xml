@@ -11,7 +11,7 @@
 
 	<groupId>de.mpg.biochem</groupId>
 	<artifactId>mars-trackmate</artifactId>
-	<version>0.4.0-SNAPSHOT</version>
+	<version>0.4.0</version>
 
 	<name>mars-swing</name>
 	<description>TrackMate Mars export plugin</description>
@@ -61,7 +61,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/duderstadt-lab/mars-trackmate</connection>
 		<developerConnection>scm:git:git@github.com:duderstadt-lab/mars-trackmate</developerConnection>
-		<tag>HEAD</tag>
+		<tag>mars-trackmate-0.4.0</tag>
 		<url>https://github.com/duderstadt-lab/trackmate</url>
 	</scm>
 	<issueManagement>
